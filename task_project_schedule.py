@@ -159,8 +159,6 @@ class Schedule():
             self.add_task(task_remaining, next_event_time, resource_applied)
             task_finish = self.task_ends[task.id] #task finish was found in a deeper version of add_task
 
-
-
     def resource_available_test(self, task, t): #returns True if enough resource is available to start task at time t, otherwise returns False
         area = 0
         for event_time in self.resource_availability:
