@@ -37,7 +37,7 @@ def load_project(project_file_path):
         b.append(int(last_line[r]))
     l = int(last_line[n_res]) #min. block length
     tasks = load_tasks(stripped_lines, n_act, n_res)
-    project = tps.Project(project_file_path, tasks, b[0], l) #min block length has been removed
+    project = tps.Project(project_file_path, tasks, b[0], l)
     return project
 
 project_file_path = "test_instance.sch"

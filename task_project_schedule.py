@@ -39,7 +39,7 @@ class Project():
 
     def __init__(self, name, tasks, R_max, l):
         self.name = name
-        self.R_max = R_max
+        self.R_max = R_max 
         self.l = l
         self.tasks = tasks
         self.set_task_successors()
