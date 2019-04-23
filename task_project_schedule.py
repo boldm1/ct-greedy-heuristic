@@ -1,6 +1,8 @@
 import collections
+import operator
 import random
 import time
+import math
 
 class Task():
 
@@ -13,8 +15,8 @@ class Task():
             self.d_max = 0
             self.d_min = 0
         else: 
-            self.d_max = self.W/self.r_min
-            self.d_min = self.W/self.r_max
+            self.d_max = math.ceil(self.W/self.r_min)
+            self.d_min = math.ceil(self.W/self.r_max)
         self.successor_ids = successor_ids
         self.successors = {}
         self.predecessor_ids = []
@@ -53,46 +55,28 @@ class Project():
         for task in self.tasks.values():
             task.set_predecessors(self.tasks)
 
-    def rand_generate_activity_list_representation(self):
-        partial_list = {}
-        while len(partial_list) < len(self.tasks):
-            next_element = self.get_next_element(partial_list)
-            partial_list[next_element.id] = next_element
-        activity_list_representation = partial_list
-        return activity_list_representation
+    def get_heuristic_schedule(self):
+        priority_scores = self.get_priority_scores(priority_rule = "LPF")
+        sorted_by_priority_scores = [0]
+        sorted_by_priority_scores.extend([x[0] for x in sorted(list(priority_scores.items())[1:len(self.tasks)-1], key=operator.itemgetter(1), reverse = True)])
+        sorted_by_priority_scores.append(len(self.tasks)-1)
+        activity_list_representation = {task_id:self.tasks[task_id] for task_id in sorted_by_priority_scores}
+        print("alr=", [task.id for task in activity_list_representation.values()])
+        schedule = self.serial_scheduling_scheme(activity_list_representation) 
+        return schedule
 
-    def get_next_element(self, partial_list):
-        if partial_list == {}:
-            dummy_start_activity = self.get_dummy_start_activity()
-            next_element = dummy_start_activity
-        else:
-            possible_next_element_ids = []
-            unscheduled_tasks = {task_id:task for task_id, task in self.tasks.items() if task_id not in partial_list}
-            for task in unscheduled_tasks.values():
-                if all(predecessor_ids in partial_list for predecessor_ids in task.predecessor_ids):
-                    possible_next_element_ids.append(task.id)
-            next_element_id = random.choice(possible_next_element_ids)
-            next_element = self.tasks[next_element_id]
-        return next_element
-
-    def get_dummy_start_activity(self):
-        for task in self.tasks.values():
-            if task.predecessor_ids == []:
-                return task
-
-    def get_heuristic_schedules(self):
-        best_makespan = 1000000
-        schedule_makespans = []
-        schedules = []
-        for iteration in range(0,1000):
-            activity_list_representation = self.rand_generate_activity_list_representation()
-            schedule = self.serial_scheduling_scheme(activity_list_representation) 
-            heuristic_schedule_makespan = max(schedule.resource_availability.keys())
-            if heuristic_schedule_makespan not in schedule_makespans:
-                schedule_makespans.append(heuristic_schedule_makespan)
-                schedules.append(schedule)
-                schedules = sorted(schedules, key=lambda schedule: schedule.makespan)
-        return schedules
+    def get_priority_scores(self, priority_rule="LPF"):
+        priority_scores = {}
+        reverse_topological_order = self.topological_ordering(reverse=True)
+        for task in reverse_topological_order:
+            if len(task.successor_ids) == 0:
+                priority_scores[task.id] = 0
+            else:
+                if priority_rule == "LPF":
+                    priority_scores[task.id] = task.d_min + max(priority_scores[j] for j in task.successor_ids)
+                elif priority_rule == "MWR":
+                    priority_scores[task.id] = task.W + max(priority_scores[j] for j in task.successor_ids)
+        return priority_scores
 
     def serial_scheduling_scheme(self, activity_list_representation):
         schedule = Schedule(self, activity_list_representation)
@@ -100,6 +84,25 @@ class Project():
             task_start = schedule.find_latest_predecessor_finish_time(task)
             schedule.greedily_schedule_task(task, task_start)
         return schedule
+
+    def topological_ordering(self, reverse=False):
+        ordered_tasks = []
+        visited = [False]*len(self.tasks)
+        for task in self.tasks.values():
+            if visited[task.id] == False:
+                self.topological_order_task(task, visited, ordered_tasks)
+        if reverse == False:
+            return(ordered_tasks)
+        else:
+            return(list(reversed(ordered_tasks)))
+
+    def topological_order_task(self, task, visited, ordered_tasks):
+        visited[task.id] = True
+        for successor in task.successors.values():
+            if visited[successor.id] == False:
+                self.topological_order_task(successor, visited, ordered_tasks)
+        ordered_tasks.insert(0, task)
+
 
 class Schedule():
 
@@ -190,12 +193,12 @@ class Schedule():
                     resource_applied = task.W/self.l
             else:
                 resource_applied = self.resource_availability[t]
-                duration = task.W/resource_applied
+                duration = math.ceil(task.W/resource_applied)
                 if duration < self.l: #check that the amount of resource applied is meaning that min. block length is not satisfied, i.e. task is being completed too quickly
                     resource_applied = task.W/self.l
             #is it better to keep the same resource allocation?
             if resource_applied != 0:
-                actual_duration = task.W/resource_applied
+                actual_duration = math.ceil(task.W/resource_applied)
                 if len(self.task_resource_usage[task.id]) != 0:
                     if list(self.task_resource_usage[task.id].items())[-1][1] <= self.resource_availability[t]:
                         if actual_duration > task.W/list(self.task_resource_usage[task.id].items())[-1][1]: #if duration is shorter if resource allocation is kept constant

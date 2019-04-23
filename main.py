@@ -44,12 +44,17 @@ project_file_path = "test_instance.sch"
 
 project = load_project(project_file_path)
 
-schedules = project.get_heuristic_schedules()
-print("schedule makespans: ", [schedule.makespan for schedule in schedules])
-best_schedule = schedules[0]
-print("l: ", project.l)
-print("w: ", project.R_max)
-print("resource_availability: ", best_schedule.resource_availability)
-print("task_resource_usages: ", best_schedule.task_resource_usage)
-print("optimal makespan: ", max(best_schedule.resource_availability.keys()))
-print("optimal activity list representation: ", [task.id for task in best_schedule.alr.values()])
+schedule = project.get_heuristic_schedule()
+print("resource_availability: ", schedule.resource_availability)
+print("task_resource_usages: ", schedule.task_resource_usage)
+print("optimal makespan: ", max(schedule.resource_availability.keys()))
+
+#schedules = project.get_heuristic_schedules()
+#print("schedule makespans: ", [schedule.makespan for schedule in schedules])
+#best_schedule = schedules[0]
+#print("l: ", project.l)
+#print("w: ", project.R_max)
+#print("resource_availability: ", best_schedule.resource_availability)
+#print("task_resource_usages: ", best_schedule.task_resource_usage)
+#print("optimal makespan: ", max(best_schedule.resource_availability.keys()))
+#print("optimal activity list representation: ", [task.id for task in best_schedule.alr.values()])
